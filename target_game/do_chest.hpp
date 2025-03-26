@@ -1,7 +1,8 @@
 #pragma once
-
+#include <Windows.h>
 #include "help_func.hpp"
 #include "inline_hook.hpp"
+
 #include <d3d9.h>
 #pragma comment(lib,"d3d9.lib")
 #include "imgui/imgui.h"
@@ -29,7 +30,7 @@ LRESULT CALLBACK self_proc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam))
 		return true;
 
-	CallWindowProc(g_original_proc,hWnd,Msg,wParam,lParam);
+	CallWindowProc(g_original_proc, hWnd, Msg, wParam, lParam);
 }
 
 void init_imgui(IDirect3DDevice9* direct3dDevice) {
@@ -44,7 +45,7 @@ void init_imgui(IDirect3DDevice9* direct3dDevice) {
 }
 
 //劫持这个函数当窗口变化执行这里面的
-HRESULT __stdcall self_Reset(IDirect3DDevice9* direct3dDevice,D3DPRESENT_PARAMETERS* pPresentationParameters) {
+HRESULT __stdcall self_Reset(IDirect3DDevice9* direct3dDevice, D3DPRESENT_PARAMETERS* pPresentationParameters) {
 
 	g_Reset_hook->restory_address();
 
@@ -64,7 +65,7 @@ HRESULT __stdcall self_EndScene(IDirect3DDevice9* direct3dDevice) {
 	if (first_call) {
 		first_call = false;
 		init_imgui(direct3dDevice);
-		g_original_proc = (WNDPROC)SetWindowLongA(FindWindowA("your exe className", nullptr),GWL_WNDPROC,(LONG)self_proc);
+		g_original_proc = (WNDPROC)SetWindowLongA(FindWindowA("your exe className", nullptr), GWL_WNDPROC, (LONG)self_proc);
 	}
 	g_EndScene_hook->restory_address();
 	//这里写绘制菜单的逻辑
@@ -92,7 +93,7 @@ HRESULT __stdcall self_DrawIndexedPrimitive(IDirect3DDevice9* direct3dDevice, D3
 
 //初始化D3D9
 //全部都是复制的 忘记就去例子里面复制
-unsigned int __stdcall initialze_d3d9(void* data){
+unsigned int __stdcall initialze_d3d9(void* data) {
 #ifdef _DEBUG
 	//AllocConsole();
 	//SetConsoleTitleA("test");
@@ -108,16 +109,16 @@ unsigned int __stdcall initialze_d3d9(void* data){
 	g_present.SwapEffect = D3DSWAPEFFECT_DISCARD;
 	g_present.BackBufferFormat = D3DFMT_UNKNOWN;
 
-	HRESULT result = g_direct3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, FindWindowA("your exe className",nullptr),
+	HRESULT result = g_direct3d9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, FindWindowA("your exe className", nullptr),
 		D3DCREATE_SOFTWARE_VERTEXPROCESSING,
 		&g_present, &g_direct3dDevice);
-	check_err(result == 0,"CreateDevice失败！");
-	
+	check_err(result == 0, "CreateDevice失败！");
+
 	//读取虚表固定写法就得这么写 
 	int* direct3d9_table = (int*)*(int*)g_direct3d9;
 	int* direct3dDevice_table = (int*)*(int*)g_direct3dDevice;
-	
-	g_Reset_hook = new inline_hook(direct3dDevice_table[16],(int)self_Reset);
+
+	g_Reset_hook = new inline_hook(direct3dDevice_table[16], (int)self_Reset);
 	g_EndScene_hook = new inline_hook(direct3dDevice_table[42], (int)self_EndScene);
 	g_Reset_hook->motify_address();
 	g_EndScene_hook->motify_address();
